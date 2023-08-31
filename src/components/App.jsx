@@ -16,46 +16,55 @@ export const App = () => {
   const [page, setPage] = useState(1);
   const [hasImages, setHasImages] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   
   const changeQuery = (newQuery) => {
     if (newQuery !== "") {
       setQuery(`${Date.now()}/${newQuery}`);
-      setImagesGallery();
-      setPage();
+      setImagesGallery([]);
+      setPage(1);
     }
   };
 
   useEffect(() => {
-    fetchAndSetImages();
-  }, [query, page]);
+    if (query) {
+      const fetchAndSetImages = async () => {
+       
+        const indexOfSlash = query.indexOf("/");
+        const queryAfterSlash = query.slice(indexOfSlash + 1);
 
-  const fetchAndSetImages = async () => {
-    const indexOfSlash = query.indexOf("/");
-    const queryAfterSlash = query.slice(indexOfSlash + 1);
-
-    setIsLoading(true);
-    try {
-       const newImages = await fetchImages(queryAfterSlash, page);
-
-    if (newImages.length === 0) {
-      Notiflix.Notify.failure("We're sorry, but you've reached the end of search results.");
-    }
     
-    setImagesGallery([...imagesGallery, ...newImages]);
-    setHasImages(true && newImages.length > 0);
+        try {
+          setIsLoading(true);
+
+          const newImages = await fetchImages(queryAfterSlash, page);
+          if (newImages.length === 0) {
+            Notiflix.Notify.failure("We're sorry, but you've reached the end of search results.");
+          }
+    
+          setImagesGallery([...imagesGallery, ...newImages]);
+          setHasImages(newImages.length > 0);
    
 
-    } catch (error) {
-      setError(error);
-       Notiflix.Notify.failure('Sorry, there are no images matching your search query. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  }
+        } catch (error) {
+          Notiflix.Notify.failure('Sorry, there are no images matching your search query. Please try again.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchAndSetImages();
+}
+    
+  }, [query, page]);
+
+ 
 
 
-
+ const handleLoadMore = () => setPage(prevPage => prevPage + 1);
+  
+const openModal = (imageUrl) => {
+  const instance = basicLightbox.create(`<img src="${imageUrl}" width="800" height="600">`);
+  instance.show();
+};
 
 
 
@@ -73,9 +82,9 @@ export const App = () => {
       <Layout>
         {imagesGallery.length > 0 && <ImageGallery
           imagesArea={imagesGallery}
-          openModal={this.openModal} />}
+          openModal={openModal} />}
         {isLoading && <InfinitySpin width='100' color="#4fa94d" />}
-        {hasImages && (<LoadMoreButton onClick={this.handleLoadMore} />)}
+        {hasImages && (<LoadMoreButton onClick={handleLoadMore} />)}
       </Layout>
     </div>
   );
