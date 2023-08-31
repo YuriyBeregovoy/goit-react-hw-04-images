@@ -1,5 +1,5 @@
 import { fetchImages } from "api";
-import { Component } from "react";
+import { useEffect, useState } from "react";
 import Notiflix from 'notiflix';
 import { InfinitySpin } from 'react-loader-spinner'
 import * as basicLightbox from 'basiclightbox'
@@ -10,41 +10,31 @@ import { Searchbar } from "./Searchbar/Searchbar";
 import { LoadMoreButton } from "./Button/LoadMoreButton";
 import { Layout } from "./Layout";
 
-export class App extends Component {
-  state = {
-    query: "",
-   imagesGallery: [],
-    page: 1,
-    hasImages: false,
-    isLoading: false,
-    error: null,
-}
-
-
-  changeQuery = (newQuery) => {
- if (newQuery !== "") {this.setState({
-      query: `${Date.now()}/${newQuery}`,
-      imagesGallery: [],
-      page: 1
-    });}
-
-  };
+export const App = () => {
+  const [query, setQuery] = useState("");
+  const [imagesGallery, setImagesGallery] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasImages, setHasImages] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   
-
-
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.query !== this.state.query || prevState.page < this.state.page) {
-      this.fetchAndSetImages();
+  const changeQuery = (newQuery) => {
+    if (newQuery !== "") {
+      setQuery(`${Date.now()}/${newQuery}`);
+      setImagesGallery();
+      setPage();
     }
-  }
+  };
 
+  useEffect(() => {
+    fetchAndSetImages();
+  }, [query, page]);
 
-  fetchAndSetImages = async () => {
-    const { query, page, imagesGallery } = this.state;
+  const fetchAndSetImages = async () => {
     const indexOfSlash = query.indexOf("/");
     const queryAfterSlash = query.slice(indexOfSlash + 1);
 
-    this.setState({ isLoading: true });
+    setIsLoading(true);
     try {
        const newImages = await fetchImages(queryAfterSlash, page);
 
@@ -52,54 +42,43 @@ export class App extends Component {
       Notiflix.Notify.failure("We're sorry, but you've reached the end of search results.");
     }
     
-    this.setState({
-      imagesGallery: [...imagesGallery, ...newImages],
-      hasImages: true && newImages.length > 0,
-    });
+    setImagesGallery([...imagesGallery, ...newImages]);
+    setHasImages(true && newImages.length > 0);
+   
 
     } catch (error) {
-      this.setState({ error });
+      setError(error);
        Notiflix.Notify.failure('Sorry, there are no images matching your search query. Please try again.');
     } finally {
-      this.setState({ isLoading: false });
+      setIsLoading(false);
     }
   }
 
 
-  handleLoadMore = () => {
-  this.setState(prevState => ({
-    page: prevState.page + 1
-  }), );
-  }
-  
 
-openModal = (imageUrl) => {
-  const instance = basicLightbox.create(`<img src="${imageUrl}" width="800" height="600">`);
-  instance.show();
-  this.setState({ modalInstance: instance });
-};
-  
 
-  render() {
-    const { hasImages, isLoading, imagesGallery } = this.state;
-    return (
-  <div>
-      
-          <Searchbar onSubmit={evt => {
-             evt.preventDefault();
-             const searchQuery = evt.target.elements.query.value.trim();
-             if ( searchQuery) { this.changeQuery(searchQuery); } else {
-               Notiflix.Notify.failure('Please enter a valid search query.');
-            }
-            evt.target.reset();
-        }} />  
+
+
+ 
+  return (
+    <div>
+       <Searchbar onSubmit={evt => {
+        evt.preventDefault();
+        const searchQuery = evt.target.elements.query.value.trim();
+        if (searchQuery) { changeQuery(searchQuery); } else {
+          Notiflix.Notify.failure('Please enter a valid search query.');
+        }
+        evt.target.reset();
+      }} />
       <Layout>
-        {imagesGallery.length > 0 && <ImageGallery imagesArea={imagesGallery} openModal={this.openModal} />}
-         {isLoading && <InfinitySpin width='100' color="#4fa94d" />} 
-         {hasImages && ( <LoadMoreButton onClick={this.handleLoadMore}/>)}
+        {imagesGallery.length > 0 && <ImageGallery
+          imagesArea={imagesGallery}
+          openModal={this.openModal} />}
+        {isLoading && <InfinitySpin width='100' color="#4fa94d" />}
+        {hasImages && (<LoadMoreButton onClick={this.handleLoadMore} />)}
       </Layout>
-  </div>
+    </div>
   );
-}
+};
 
- };
+ 
