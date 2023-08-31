@@ -41,7 +41,7 @@ export const App = () => {
             Notiflix.Notify.failure("We're sorry, but you've reached the end of search results.");
           }
     
-          setImagesGallery([...imagesGallery, ...newImages]);
+          setImagesGallery(prevState => [...prevState, ...newImages]);
           setHasImages(newImages.length > 0);
    
 
